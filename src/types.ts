@@ -75,3 +75,26 @@ export interface WeeklyPlan {
   dailyGoals: DailyGoal[];
   newVocabulary: VocabularyItem[];
 }
+
+// Database types for Supabase Realtime
+export interface VocabularyProgress {
+  id: string;
+  user_id: string;
+  vocabulary_id: string;
+  mastery_level: number;
+  next_review_date: string;
+  times_reviewed: number;
+  times_correct: number;
+  learned: boolean;
+  created_at: string;
+  updated_at: string;
+  // Joined vocabulary data
+  vocabulary?: {
+    id: string;
+    word: string;
+    definition: string;
+    translation: string;
+    category: string;
+    level: string;
+  };
+}

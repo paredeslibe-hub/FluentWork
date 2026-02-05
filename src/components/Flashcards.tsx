@@ -5,15 +5,17 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, Check, Loader2 } from 'lucide-react';
+import { updateMasteryLevel } from '@/services/vocabularyProgressService';
 
 interface FlashcardsProps {
   vocab: VocabularyItem[];
+  userId?: string;
   onVocabUpdate: (item: VocabularyItem) => void;
   onUpdateProgress: (mistake?: string, activity?: string, attemptDetails?: PracticeAttempt) => void;
 }
 
-const Flashcards = ({ vocab, onVocabUpdate, onUpdateProgress }: FlashcardsProps) => {
+const Flashcards = ({ vocab, userId, onVocabUpdate, onUpdateProgress }: FlashcardsProps) => {
   const [state, setState] = useState<FlashcardState>({
     currentCardIndex: 0,
     showBack: false,
@@ -21,16 +23,19 @@ const Flashcards = ({ vocab, onVocabUpdate, onUpdateProgress }: FlashcardsProps)
   });
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const cardsToReview = vocab || [];
   const currentCard = cardsToReview[state.currentCardIndex];
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     if (!currentCard) return;
+    
     const correct = state.userInput.toLowerCase().trim() === currentCard.word.toLowerCase().trim();
     setIsCorrect(correct);
     setIsAnswered(true);
     
+    // Update local state
     const updatedItem = {
       ...currentCard,
       masteryLevel: correct ? Math.min(5, currentCard.masteryLevel + 1) : Math.max(0, currentCard.masteryLevel - 1),
@@ -38,6 +43,19 @@ const Flashcards = ({ vocab, onVocabUpdate, onUpdateProgress }: FlashcardsProps)
     };
     
     onVocabUpdate(updatedItem);
+
+    // Save to Supabase if user is authenticated
+    if (userId) {
+      setIsSaving(true);
+      try {
+        await updateMasteryLevel(userId, currentCard.id, correct);
+        console.log(`✅ Progreso guardado en Supabase: ${currentCard.word} - ${correct ? 'correcto' : 'incorrecto'}`);
+      } catch (error) {
+        console.error('Error guardando progreso:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    }
 
     if (!correct) {
       onUpdateProgress(`Error en vocabulario: ${currentCard.word}`);
@@ -76,7 +94,15 @@ const Flashcards = ({ vocab, onVocabUpdate, onUpdateProgress }: FlashcardsProps)
     <div className="max-w-lg mx-auto space-y-8">
       {/* Header */}
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Flashcards</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Flashcards</h1>
+          {isSaving && (
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              <Loader2 className="size-3 animate-spin" />
+              Guardando...
+            </p>
+          )}
+        </div>
         <Badge variant="outline">
           {state.currentCardIndex + 1} / {cardsToReview.length}
         </Badge>
@@ -130,7 +156,7 @@ const Flashcards = ({ vocab, onVocabUpdate, onUpdateProgress }: FlashcardsProps)
 
         <CardFooter className="p-6 pt-0">
           {isAnswered ? (
-            <Button onClick={handleNext} className="w-full">
+            <Button onClick={handleNext} className="w-full" disabled={isSaving}>
               Siguiente
               <ArrowRight className="size-4" />
             </Button>

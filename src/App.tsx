@@ -348,7 +348,10 @@ const App = () => {
       <Sidebar 
         activeSection={viewToSection[view]} 
         onNavigate={handleNavigate}
-        level={profile?.level || 1}
+        level={(() => {
+          const levelMap: Record<string, number> = { 'A1': 1, 'A2': 2, 'B1': 3, 'B2': 4, 'C1': 5, 'C2': 6 };
+          return levelMap[profile?.level || 'A2'] || 2;
+        })()}
       />
       
       <main className={`flex-1 overflow-y-auto ${isOffline ? 'pt-10' : ''}`}>
@@ -362,7 +365,8 @@ const App = () => {
           {view === AppView.VOCABULARY && <VocabularyBank vocab={vocab} />}
           {view === AppView.FLASHCARDS && (
             <Flashcards 
-              vocab={vocab} 
+              vocab={vocab}
+              userId={userId || undefined}
               onVocabUpdate={handleUpdateVocab} 
               onUpdateProgress={handleUpdateProgress} 
             />
