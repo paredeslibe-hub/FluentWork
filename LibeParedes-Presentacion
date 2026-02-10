@@ -1,0 +1,211 @@
+---
+marp: true
+theme: default
+class: invert
+style: |
+  section {
+    background-color: #1a1a1a;
+    color: #e5e7eb;
+    font-family: 'Inter', sans-serif;
+  }
+  h1 {
+    color: #8B5CF6; /* Violet-500 */
+    font-size: 3em;
+  }
+  h2 {
+    color: #A78BFA; /* Violet-400 */
+  }
+  h3 {
+    color: #C4B5FD; /* Violet-300 */
+  }
+  strong {
+    color: #8B5CF6;
+  }
+  code {
+    background: #2d2d2d;
+    color: #a78bfa;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+  }
+  pre {
+    background: #0f0f0f !important;
+    border: 1px solid #333;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  img {
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  /* Custom layouts */
+  section.lead {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+  }
+  .card {
+    background: #27272a;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #3f3f46;
+  }
+---
+
+<!-- _class: lead -->
+
+# FluentWork
+## Coach de Inglés Práctico para UX/UI
+
+### Creado por: **Libe Paredes**
+
+Una herramienta diseñada para profesionales del diseño que buscan dominar el inglés en contextos laborales reales.
+
+---
+
+## 🎯 El Problema
+
+Los diseñadores UX/UI hispanohablantes enfrentan desafíos únicos al trabajar en equipos internacionales:
+
+1. **Jerga Específica**: Términos como "stakeholder alignment", "pixel perfect", o "user journey" son cruciales.
+2. **Contexto Laboral**: Las apps genéricas enseñan "el gato está en la mesa", no "necesito feedback sobre este wireframe".
+3. **Confianza**: Miedo a hablar en *Design Critiques* o *Daily Standups*.
+4. **Barrera del Idioma**: Dificultad para justificar decisiones de diseño en inglés.
+
+---
+
+## 👤 Usuario UX/UI
+
+Nuestro usuario objetivo es un **Diseñador Product/UX/UI** que:
+
+- 🎨 Trabaja (o quiere trabajar) remoto para empresas globales.
+- 🗣️ Tiene un nivel intermedio (B1/B2) pero se "traba" en reuniones.
+- ⏱️ Tiene poco tiempo y necesita práctica **rápida** y **relevante**.
+- 🚀 Busca feedback instantáneo y correcciones "on-the-fly".
+
+---
+
+## 🔄 Flujo con Gemini y Supabase
+
+La arquitectura de FluentWork combina la potencia del Backend-as-a-Service con IA Generativa:
+
+1. **Frontend (React/Vite)**: Interfaz rápida y responsiva.
+2. **Edge Function (Supabase)**: Lógica segura del servidor para procesar prompts.
+3. **Gemini API (Google)**: Genera ejemplos contextuales, correcciones y planes semanales.
+4. **Database (PostgreSQL)**: Almacena perfiles, progreso y vocabulario personalizado con RLS.
+
+---
+
+## 🛠️ Stack Tecnológico
+
+<div class="columns">
+  <div class="card">
+    <h3>Frontend</h3>
+    <ul>
+      <li>React 18</li>
+      <li>Vite (Build ultra-rapido)</li>
+      <li>TailwindCSS v4 (Diseño)</li>
+      <li>Lucide Icons</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>Backend & AI</h3>
+    <ul>
+      <li><strong>Supabase</strong> (Auth, DB)</li>
+      <li><strong>Deno Edge Functions</strong></li>
+      <li><strong>Google Gemini 1.5/2.0</strong></li>
+      <li><strong>Antigravity</strong> (AI Agent IDE)</li>
+      <li>TypeScript (Fullstck)</li>
+    </ul>
+  </div>
+</div>
+
+---
+
+## 💻 Edge Function: `generate-ux-context`
+
+Nuestra función estrella genera ejemplos de oraciones ultra-específicos para UX.
+
+```typescript
+// supabase/functions/generate-ux-context/index.ts
+// ... (imports y config)
+
+// Construimos un prompt contextual para Gemini
+const prompt = `You are an English teacher helping a ${userContext} learn...
+The vocabulary word is: "${word}"
+
+Generate a realistic, practical example sentence that a ${userContext} 
+would use in their daily work (e.g., Design Reviews, Figma).
+
+Respond in JSON format: { "example_sentence": "...", "scenario": "..." }`;
+
+// Llamamos a Gemini API desde el Edge (seguro y rápido)
+const geminiResponse = await fetch(
+  `https://generativelanguage.googleapis.com/.../models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+  // ...
+);
+```
+
+---
+
+## 🗄️ Base de Datos (Supabase)
+
+Estructura optimizada para seguimiento de progreso.
+
+```sql
+-- Tabla: vocabulary (Extracto)
+create table public.vocabulary (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references public.profiles(id) not null,
+  word text not null,
+  spanish text,
+  example text, -- Generado por AI
+  mastery_level integer default 0,
+  context_tags text[] -- ['ux', 'meeting', 'agile']
+);
+
+-- RLS (Row Level Security) activado para privacidad total
+create policy "Users can only view their own vocabulary"
+  on public.vocabulary for select
+  using (auth.uid() = user_id);
+```
+
+---
+
+<!-- _class: lead -->
+
+## 🎥 Demo
+
+<video src="LibeParedes-FluentWork.mkv" controls width="800"></video>
+
+*(Si el video no carga, asegúrate de tener el archivo en la misma carpeta)*
+
+[Ver Video Demo Externo](#) <!-- Placeholder para link -->
+
+---
+
+## 🔗 Recursos & Prompts
+
+Accede a la colección completa de prompts utilizados para entrenar al Coach de IA:
+
+> **[Repositorio de Prompts de FluentWork](https://github.com/paredeslibe-hub/FluentWork/blob/main/Prompts.md)**
+
+Accede al código fuente completo del proyecto:
+
+> **[Repositorio GitHub FluentWork](https://github.com/paredeslibe-hub/FluentWork)**
+
+
+---
+
+<!-- _class: lead -->
+
+# ¡Gracias!
+
+### FluentWork
+*Design your English, Design your Career.*
+
